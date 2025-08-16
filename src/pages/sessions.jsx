@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 // @ts-ignore;
 import { useToast } from '@/components/ui';
 // @ts-ignore;
-import { AlertCircle, RefreshCw, ChevronRight, Image, Video, Users, Info } from 'lucide-react';
+import { AlertCircle, RefreshCw, ChevronRight } from 'lucide-react';
 
 export default function Sessions(props) {
   const {
@@ -24,14 +24,12 @@ export default function Sessions(props) {
     date: '2023-06-15',
     time: '19:30',
     venue: '国家大剧院',
-    price: '¥180-¥880',
     status: 'available'
   }, {
     id: '2',
     date: '2023-06-16',
     time: '19:30',
     venue: '国家大剧院',
-    price: '¥180-¥880',
     status: 'available'
   }];
   const dummyShowInfo = {
@@ -55,11 +53,11 @@ export default function Sessions(props) {
       avatar: "https://via.placeholder.com/100/667eea/ffffff?text=B"
     }],
     faqs: [{
-      question: "购票方式",
-      answer: "可通过官方渠道购票"
+      question: "常见问题一",
+      answer: "问题一的解答"
     }, {
-      question: "退票政策",
-      answer: "演出前48小时可退票"
+      question: "常见问题二",
+      answer: "问题二的解答"
     }]
   };
   useEffect(() => {
@@ -90,10 +88,7 @@ export default function Sessions(props) {
             <p className="font-medium">{session.date} {session.time}</p>
             <p className="text-sm text-muted-foreground">{session.venue}</p>
           </div>
-          <div className="flex items-center">
-            <p className="text-primary mr-2">{session.price}</p>
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          </div>
+          <ChevronRight className="w-5 h-5 text-muted-foreground" />
         </div>)}
     </div>;
   const renderShowInfoTab = () => {
@@ -113,7 +108,6 @@ export default function Sessions(props) {
         <div className="p-4 bg-card rounded-lg">
           <h2 className="text-xl font-bold mb-2">{showInfo.title}</h2>
           <div className="flex items-center text-sm text-muted-foreground mb-2">
-            <Info className="w-4 h-4 mr-1" />
             <span>{showInfo.duration} | {showInfo.ageRating}</span>
           </div>
           <p className="text-sm">{showInfo.description}</p>
@@ -121,9 +115,7 @@ export default function Sessions(props) {
 
         {/* 主创团队 */}
         <div>
-          <h3 className="text-lg font-semibold px-4 mb-2 flex items-center">
-            <Users className="w-5 h-5 mr-2" /> 主创团队
-          </h3>
+          <h3 className="text-lg font-semibold px-4 mb-2">主创团队</h3>
           <div className="overflow-x-auto px-4">
             <div className="flex space-x-4 pb-2">
               {showInfo.cast.map((person, i) => <div key={i} className="flex-shrink-0 w-24 text-center">
@@ -139,9 +131,7 @@ export default function Sessions(props) {
 
         {/* 媒体内容 */}
         <div>
-          <h3 className="text-lg font-semibold px-4 mb-2 flex items-center">
-            <Image className="w-5 h-5 mr-2" /> 剧照
-          </h3>
+          <h3 className="text-lg font-semibold px-4 mb-2">剧照</h3>
           <div className="grid grid-cols-2 gap-2 px-4">
             {showInfo.gallery.map((img, i) => <div key={i} className="aspect-square bg-muted rounded overflow-hidden">
                 <img src={img} alt={`剧照${i + 1}`} className="w-full h-full object-cover" />
@@ -151,9 +141,7 @@ export default function Sessions(props) {
 
         {/* 视频 */}
         {showInfo.videos.length > 0 && <div>
-            <h3 className="text-lg font-semibold px-4 mb-2 flex items-center">
-              <Video className="w-5 h-5 mr-2" /> 视频
-            </h3>
+            <h3 className="text-lg font-semibold px-4 mb-2">视频</h3>
             <div className="px-4">
               {showInfo.videos.map((video, i) => <div key={i} className="aspect-video bg-muted rounded overflow-hidden">
                   <img src={video.thumbnail} alt={`视频${i + 1}`} className="w-full h-full object-cover" />
