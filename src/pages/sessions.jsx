@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 // @ts-ignore;
 import { useToast } from '@/components/ui';
 // @ts-ignore;
-import { AlertCircle, RefreshCw, ChevronRight } from 'lucide-react';
+import { AlertCircle, RefreshCw, ChevronRight, Image, Video, Users, Info } from 'lucide-react';
 
 export default function Sessions(props) {
   const {
@@ -12,98 +12,183 @@ export default function Sessions(props) {
   const {
     toast
   } = useToast();
+  const [activeTab, setActiveTab] = useState('sessions');
+  const [sessions, setSessions] = useState([]);
+  const [showInfo, setShowInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Dummy数据
   const dummySessions = [{
-    id: "1",
-    startsAt: "2023-12-25T19:30:00",
-    venueName: "国家大剧院·歌剧院",
-    defaultLang: "zh",
-    langs: ["zh", "en"],
-    scriptRef: {
-      scriptId: "s1",
-      scriptHash: "abc123"
-    },
-    status: "active"
+    id: '1',
+    date: '2023-06-15',
+    time: '19:30',
+    venue: '国家大剧院',
+    price: '¥180-¥880',
+    status: 'available'
   }, {
-    id: "2",
-    startsAt: "2023-12-26T14:00:00",
-    venueName: "上海大剧院",
-    defaultLang: "zh",
-    langs: ["zh"],
-    scriptRef: {
-      scriptId: "s2",
-      scriptHash: "def456"
-    },
-    status: "ended"
+    id: '2',
+    date: '2023-06-16',
+    time: '19:30',
+    venue: '国家大剧院',
+    price: '¥180-¥880',
+    status: 'available'
   }];
-  const [sessions, setSessions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const dummyShowInfo = {
+    title: "剧目名称",
+    poster: "https://via.placeholder.com/300x450/667eea/ffffff?text=Show+Poster",
+    gallery: ["https://via.placeholder.com/600x400/667eea/ffffff?text=Gallery+1", "https://via.placeholder.com/600x400/667eea/ffffff?text=Gallery+2"],
+    videos: [{
+      thumbnail: "https://via.placeholder.com/300x200/667eea/ffffff?text=Trailer",
+      url: "https://example.com/video1"
+    }],
+    description: "这是一段详细的剧目描述，包含剧情梗概、演出时长等信息。",
+    duration: "120分钟",
+    ageRating: "12+",
+    cast: [{
+      name: "演员一",
+      role: "角色一",
+      avatar: "https://via.placeholder.com/100/667eea/ffffff?text=A"
+    }, {
+      name: "演员二",
+      role: "角色二",
+      avatar: "https://via.placeholder.com/100/667eea/ffffff?text=B"
+    }],
+    faqs: [{
+      question: "购票方式",
+      answer: "可通过官方渠道购票"
+    }, {
+      question: "退票政策",
+      answer: "演出前48小时可退票"
+    }]
+  };
   useEffect(() => {
-    const fetchSessions = async () => {
+    const fetchData = async () => {
       try {
         // 模拟加载延迟
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // 过滤掉draft状态
-        const filtered = dummySessions.filter(s => s.status !== "draft");
-        setSessions(filtered);
+        // 加载场次数据
+        setSessions(dummySessions.filter(s => s.status !== "draft"));
+        // 加载剧目信息
+        setShowInfo(dummyShowInfo);
       } catch (err) {
         setError(err);
       } finally {
         setLoading(false);
       }
     };
-    fetchSessions();
+    fetchData();
   }, []);
-  const formatDate = dateStr => {
-    const date = new Date(dateStr);
-    const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
-    return `${date.getMonth() + 1}月${date.getDate()}日（周${weekdays[date.getDay()]}）${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
-  };
   const handleSessionClick = session => {
-    // 校验逻辑
-    if (!session.scriptRef.scriptId) {
-      toast({
-        title: "无法进入",
-        description: "剧本信息缺失",
-        variant: "destructive"
-      });
-      return;
-    }
-    if (session.status === "ended" || session.status === "archived") {
-      return; // 不可点击
-    }
-    $w.utils.navigateTo({
-      pageId: 'player',
-      params: {
-        sessionId: session.id
-      }
-    });
+    // 处理场次点击逻辑
+    console.log('Session clicked:', session);
   };
-  return <div className="flex flex-col h-screen bg-background text-foreground p-4">
-      {loading ? <div className="space-y-4">
-          {[...Array(3)].map((_, i) => <div key={i} className="h-20 bg-muted rounded animate-pulse"></div>)}
-        </div> : error ? <div className="flex flex-col items-center justify-center h-full">
-          <AlertCircle className="w-12 h-12 text-destructive mb-4" />
-          <p className="text-lg font-semibold mb-2">加载失败</p>
-          <button onClick={() => window.location.reload()} className="px-4 py-2 bg-primary text-primary-foreground rounded-md flex items-center">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            重试
+  const renderSessionsTab = () => <div className="space-y-4 p-4">
+      {sessions.map(session => <div key={session.id} className="p-4 bg-card rounded-lg flex justify-between items-center" onClick={() => handleSessionClick(session)}>
+          <div>
+            <p className="font-medium">{session.date} {session.time}</p>
+            <p className="text-sm text-muted-foreground">{session.venue}</p>
+          </div>
+          <div className="flex items-center">
+            <p className="text-primary mr-2">{session.price}</p>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </div>
+        </div>)}
+    </div>;
+  const renderShowInfoTab = () => {
+    if (loading) return <div className="space-y-4">
+        {[...Array(5)].map((_, i) => <div key={i} className="h-32 bg-muted rounded animate-pulse"></div>)}
+      </div>;
+    if (!showInfo) return <div className="flex flex-col items-center justify-center h-64">
+        <p className="text-lg font-semibold">剧目信息加载失败</p>
+      </div>;
+    return <div className="space-y-6 pb-20">
+        {/* 主视觉 */}
+        <div className="relative h-64 w-full bg-muted rounded-lg overflow-hidden">
+          <img src={showInfo.poster} alt={showInfo.title} className="w-full h-full object-cover" />
+        </div>
+
+        {/* 基本信息 */}
+        <div className="p-4 bg-card rounded-lg">
+          <h2 className="text-xl font-bold mb-2">{showInfo.title}</h2>
+          <div className="flex items-center text-sm text-muted-foreground mb-2">
+            <Info className="w-4 h-4 mr-1" />
+            <span>{showInfo.duration} | {showInfo.ageRating}</span>
+          </div>
+          <p className="text-sm">{showInfo.description}</p>
+        </div>
+
+        {/* 主创团队 */}
+        <div>
+          <h3 className="text-lg font-semibold px-4 mb-2 flex items-center">
+            <Users className="w-5 h-5 mr-2" /> 主创团队
+          </h3>
+          <div className="overflow-x-auto px-4">
+            <div className="flex space-x-4 pb-2">
+              {showInfo.cast.map((person, i) => <div key={i} className="flex-shrink-0 w-24 text-center">
+                  <div className="w-16 h-16 mx-auto rounded-full overflow-hidden bg-muted mb-2">
+                    <img src={person.avatar} alt={person.name} className="w-full h-full object-cover" />
+                  </div>
+                  <p className="text-sm font-medium truncate">{person.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{person.role}</p>
+                </div>)}
+            </div>
+          </div>
+        </div>
+
+        {/* 媒体内容 */}
+        <div>
+          <h3 className="text-lg font-semibold px-4 mb-2 flex items-center">
+            <Image className="w-5 h-5 mr-2" /> 剧照
+          </h3>
+          <div className="grid grid-cols-2 gap-2 px-4">
+            {showInfo.gallery.map((img, i) => <div key={i} className="aspect-square bg-muted rounded overflow-hidden">
+                <img src={img} alt={`剧照${i + 1}`} className="w-full h-full object-cover" />
+              </div>)}
+          </div>
+        </div>
+
+        {/* 视频 */}
+        {showInfo.videos.length > 0 && <div>
+            <h3 className="text-lg font-semibold px-4 mb-2 flex items-center">
+              <Video className="w-5 h-5 mr-2" /> 视频
+            </h3>
+            <div className="px-4">
+              {showInfo.videos.map((video, i) => <div key={i} className="aspect-video bg-muted rounded overflow-hidden">
+                  <img src={video.thumbnail} alt={`视频${i + 1}`} className="w-full h-full object-cover" />
+                </div>)}
+            </div>
+          </div>}
+
+        {/* FAQ */}
+        <div className="px-4">
+          <h3 className="text-lg font-semibold mb-2">常见问题</h3>
+          <div className="space-y-2">
+            {showInfo.faqs.map((faq, i) => <div key={i} className="bg-card rounded-lg p-3">
+                <p className="font-medium">{faq.question}</p>
+                <p className="text-sm text-muted-foreground">{faq.answer}</p>
+              </div>)}
+          </div>
+        </div>
+      </div>;
+  };
+  return <div className="flex flex-col h-screen bg-background text-foreground">
+      {/* TAB栏 */}
+      <div className="sticky top-0 z-10 bg-background border-b">
+        <div className="flex">
+          <button className={`flex-1 py-3 text-center font-medium ${activeTab === 'sessions' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`} onClick={() => setActiveTab('sessions')}>
+            场次
           </button>
-        </div> : sessions.length === 0 ? <div className="flex flex-col items-center justify-center h-full">
-          <p className="text-lg font-semibold">本剧暂无场次安排</p>
-        </div> : <div className="space-y-2">
-          {sessions.map(session => <div key={session.id} onClick={() => handleSessionClick(session)} className={`p-4 rounded-lg border ${session.status === 'active' ? 'bg-card cursor-pointer hover:bg-accent' : 'bg-muted opacity-50'}`}>
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium">{formatDate(session.startsAt)}</p>
-                  <p className="text-sm text-muted-foreground">{session.venueName}</p>
-                </div>
-                {session.status === 'active' && <ChevronRight className="h-5 w-5" />}
-              </div>
-            </div>)}
-        </div>}
+          <button className={`flex-1 py-3 text-center font-medium ${activeTab === 'info' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`} onClick={() => setActiveTab('info')}>
+            剧目信息
+          </button>
+        </div>
+      </div>
+
+      {/* 内容区 */}
+      <div className="flex-1 overflow-y-auto">
+        {activeTab === 'sessions' ? renderSessionsTab() : renderShowInfoTab()}
+      </div>
     </div>;
 }
