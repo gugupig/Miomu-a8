@@ -22,6 +22,44 @@ export default function Player(props) {
   const lastVersionRef = useRef(-1);
   const hideTimerRef = useRef(null);
 
+  // 调试用的dummy字幕数据
+  const dummyScript = {
+    _id: "script1",
+    meta: {
+      hash: "abc123",
+      languages: ["zh", "en", "ja"]
+    },
+    cues: [{
+      id: "cue1",
+      texts: {
+        zh: "欢迎来到我们的演出",
+        en: "Welcome to our performance",
+        ja: "私たちの公演へようこそ"
+      }
+    }, {
+      id: "cue2",
+      texts: {
+        zh: "请关闭手机或调至静音",
+        en: "Please turn off or mute your phones",
+        ja: "携帯電話の電源を切るかサイレントモードにしてください"
+      }
+    }, {
+      id: "cue3",
+      texts: {
+        zh: "演出即将开始",
+        en: "The show is about to begin",
+        ja: "ショーはまもなく始まります"
+      }
+    }]
+  };
+  const dummySessionState = {
+    sessionId: "session1",
+    cueIndex: 0,
+    lang: "zh",
+    version: 1,
+    updatedAt: new Date().toISOString()
+  };
+
   // 计算自适应字号
   const calculateFontSize = () => {
     const {
@@ -29,7 +67,7 @@ export default function Player(props) {
       innerHeight
     } = window;
     const baseSize = Math.min(innerWidth, innerHeight);
-    return Math.floor(baseSize / 20); // 根据屏幕尺寸动态计算
+    return Math.floor(baseSize / 20);
   };
 
   // 设置语言选择器自动隐藏
@@ -46,47 +84,15 @@ export default function Player(props) {
     setupAutoHide();
   };
 
-  // Dummy数据
-  const dummyScript = {
-    _id: "script1",
-    meta: {
-      hash: "abc123",
-      languages: ["zh", "en"]
-    },
-    cues: [{
-      id: "cue1",
-      texts: {
-        zh: "第一行字幕",
-        en: "First subtitle"
-      }
-    }, {
-      id: "cue2",
-      texts: {
-        zh: "第二行字幕",
-        en: "Second subtitle"
-      }
-    }]
-  };
-  const dummySessionState = {
-    sessionId: "session1",
-    cueIndex: 0,
-    lang: "zh",
-    version: 1,
-    updatedAt: new Date().toISOString()
-  };
-
   // 加载剧本
   const loadScript = async scriptRef => {
     try {
       // 模拟加载延迟
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // 校验hash
-      if (scriptRef.scriptHash !== dummyScript.meta.hash) {
-        throw new Error("HASH_MISMATCH");
-      }
+      // 直接使用调试数据，跳过校验
       setScript(dummyScript);
-      setCurrentLang(scriptRef.defaultLang);
+      setCurrentLang(scriptRef.defaultLang || "zh");
       return dummyScript;
     } catch (err) {
       setError(err);
@@ -96,33 +102,27 @@ export default function Player(props) {
 
   // 订阅实时状态
   const subscribeSessionState = sessionId => {
-    setConnectionStatus('connected');
+    // 直接使用调试状态
     setSessionState(dummySessionState);
     lastVersionRef.current = dummySessionState.version;
 
-    // 模拟后续更新
+    // 模拟字幕轮播
     const interval = setInterval(() => {
-      const newVersion = dummySessionState.version + 1;
-      if (newVersion > lastVersionRef.current) {
-        lastVersionRef.current = newVersion;
-        setSessionState({
-          ...dummySessionState,
-          version: newVersion,
-          cueIndex: (dummySessionState.cueIndex + 1) % dummyScript.cues.length,
+      setSessionState(prev => {
+        const newIndex = (prev.cueIndex + 1) % dummyScript.cues.length;
+        return {
+          ...prev,
+          cueIndex: newIndex,
+          version: prev.version + 1,
           updatedAt: new Date().toISOString()
-        });
-      }
+        };
+      });
     }, 3000);
     return () => clearInterval(interval);
   };
   useEffect(() => {
     const init = async () => {
       try {
-        // 从路由参数获取sessionId
-        const {
-          sessionId
-        } = $w.page.dataset.params;
-
         // 初始化字号
         setFontSize(calculateFontSize());
 
@@ -137,11 +137,11 @@ export default function Player(props) {
           scriptId: "script1",
           scriptHash: "abc123",
           defaultLang: "zh",
-          langs: ["zh", "en"]
+          langs: ["zh", "en", "ja"]
         });
 
         // 订阅状态
-        const cleanup = subscribeSessionState(sessionId);
+        const cleanup = subscribeSessionState("session1");
 
         // 设置语言选择器自动隐藏
         setupAutoHide();
@@ -169,56 +169,42 @@ export default function Player(props) {
     let text = cue.texts[currentLang] || cue.texts[script.meta.languages[0]] || Object.values(cue.texts)[0];
     const isFallback = !cue.texts[currentLang];
     return <div className="flex items-center justify-center h-full">
-      <p className="text-center px-4" style={{
+        <p className="text-center px-4" style={{
         fontSize: `${fontSize}px`,
         lineHeight: `${fontSize * 1.2}px`,
         maxWidth: '80%',
         color: '#FFFFFF'
       }}>
-        {text}
-        {isFallback && <span className="text-xs text-gray-400 ml-2">(缺省)</span>}
-      </p>
-    </div>;
+          {text}
+          {isFallback && <span className="text-xs text-gray-400 ml-2">(缺省)</span>}
+        </p>
+      </div>;
   };
 
   // 语言选择器
   const renderLanguageSelector = () => {
     if (!script || !showLanguageSelector) return null;
     return <div className="absolute bottom-4 left-0 right-0 flex justify-center">
-      <div className="bg-black bg-opacity-70 rounded-full p-2">
-        <select value={currentLang} onChange={e => {
+        <div className="bg-black bg-opacity-70 rounded-full p-2">
+          <select value={currentLang} onChange={e => {
           setCurrentLang(e.target.value);
           setupAutoHide();
         }} className="bg-transparent text-white border-none focus:ring-0">
-          {script.meta.languages.map(lang => <option key={lang} value={lang} className="bg-black text-white">
-              {lang.toUpperCase()}
-            </option>)}
-        </select>
-      </div>
-    </div>;
+            {script.meta.languages.map(lang => <option key={lang} value={lang} className="bg-black text-white">
+                {lang.toUpperCase()}
+              </option>)}
+          </select>
+        </div>
+      </div>;
   };
   if (loading) {
     return <div className="flex flex-col items-center justify-center h-screen bg-black">
-      <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mb-4"></div>
-      <p className="text-white text-lg">正在加载剧本...</p>
-    </div>;
-  }
-  if (error) {
-    return <div className="flex flex-col items-center justify-center h-screen bg-black p-4">
-      <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-      <p className="text-white text-lg font-semibold mb-2">
-        {error.message === "HASH_MISMATCH" ? "剧本校验失败" : "连接错误"}
-      </p>
-      <p className="text-gray-400 text-sm mb-6">
-        {error.message === "HASH_MISMATCH" ? "剧本版本不匹配，请刷新重试" : "无法连接到服务器"}
-      </p>
-      <button onClick={() => window.location.reload()} className="px-4 py-2 bg-white text-black rounded-md">
-        重试
-      </button>
-    </div>;
+        <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-white text-lg">正在加载剧本...</p>
+      </div>;
   }
   return <div className="flex flex-col h-screen bg-black text-white relative" onClick={handleScreenClick}>
-    {renderCurrentCue()}
-    {renderLanguageSelector()}
-  </div>;
+      {renderCurrentCue()}
+      {renderLanguageSelector()}
+    </div>;
 }
