@@ -20,8 +20,10 @@ export default function Player(props) {
   const [showLanguageSelector, setShowLanguageSelector] = useState(true);
   const [fontSize, setFontSize] = useState(24);
   const [orientation, setOrientation] = useState('landscape');
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const lastVersionRef = useRef(-1);
   const hideTimerRef = useRef(null);
+  const playerRef = useRef(null);
 
   // 从路由参数中获取sessionId和scriptRef
   const {
@@ -29,6 +31,42 @@ export default function Player(props) {
     scriptRef
   } = $w.page.dataset.params;
   const parsedScriptRef = scriptRef ? JSON.parse(scriptRef) : null;
+
+  // 进入全屏
+  const enterFullscreen = () => {
+    const elem = playerRef.current;
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen();
+    } else if (elem.webkitRequestFullscreen) {
+      elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) {
+      elem.msRequestFullscreen();
+    }
+    setIsFullscreen(true);
+  };
+
+  // 退出全屏
+  const exitFullscreen = () => {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    }
+    setIsFullscreen(false);
+  };
+
+  // 检测全屏变化
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   // 调试用的dummy字幕数据
   const dummyScript = {
@@ -127,6 +165,8 @@ export default function Player(props) {
         await loadScript(parsedScriptRef);
         const cleanup = subscribeSessionState(sessionId);
         setupAutoHide();
+        // 默认进入全屏
+        enterFullscreen();
         return () => {
           window.removeEventListener('resize', handleOrientationChange);
           cleanup();
@@ -149,43 +189,58 @@ export default function Player(props) {
     let text = cue.texts[currentLang] || cue.texts[script.meta.languages[0]] || Object.values(cue.texts)[0];
     const isFallback = !cue.texts[currentLang];
     return <div className="flex items-center justify-center h-full">
-        <p className="text-center px-4" style={{
+      <p className="text-center px-4" style={{
         fontSize: `${fontSize}px`,
         lineHeight: `${fontSize * 1.2}px`,
         maxWidth: orientation === 'portrait' ? '80%' : '90%',
         color: '#FFFFFF',
         textShadow: '0 0 8px rgba(0,0,0,0.8)'
       }}>
-          {text}
-          {isFallback && <span className="text-xs text-gray-400 ml-2">(缺省)</span>}
-        </p>
-      </div>;
+        {text}
+        {isFallback && <span className="text-xs text-gray-400 ml-2">(缺省)</span>}
+      </p>
+    </div>;
   };
 
   // 语言选择器
   const renderLanguageSelector = () => {
     if (!script || !showLanguageSelector) return null;
     return <div className={`absolute ${orientation === 'portrait' ? 'bottom-4' : 'bottom-8'} left-0 right-0 flex justify-center`}>
-        <div className="bg-black bg-opacity-70 rounded-full p-2">
-          <select value={currentLang} onChange={e => {
+      <div className="bg-black bg-opacity-70 rounded-full p-2">
+        <select value={currentLang} onChange={e => {
           setCurrentLang(e.target.value);
           setupAutoHide();
         }} className="bg-transparent text-white border-none focus:ring-0">
-            {script.meta.languages.map(lang => <option key={lang} value={lang} className="bg-black text-white">
-                {lang.toUpperCase()}
-              </option>)}
-          </select>
-        </div>
-      </div>;
+          {script.meta.languages.map(lang => <option key={lang} value={lang} className="bg-black text-white">
+            {lang.toUpperCase()}
+          </option>)}
+        </select>
+      </div>
+    </div>;
   };
   if (loading) {
     return <div className="flex flex-col items-center justify-center h-screen bg-black">
-        <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-white text-lg">正在加载剧本...</p>
-      </div>;
-  }
-  return <div className="flex flex-col h-screen bg-black text-white relative" onClick={handleScreenClick}>
-      {renderCurrentCue()}
-      {renderLanguageSelector()}
+      <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mb-4"></div>
+      <p className="text-white text-lg">正在加载剧本...</p>
     </div>;
+  }
+  return <div ref={playerRef} className="flex flex-col h-screen bg-black text-white relative" onClick={handleScreenClick} style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    zIndex: 9999
+  }}>
+    {renderCurrentCue()}
+    {renderLanguageSelector()}
+    {!isFullscreen && <button onClick={enterFullscreen} className="absolute top-4 right-4 bg-black bg-opacity-50 text-white p-2 rounded-full">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <polyline points="9 21 3 21 3 15"></polyline>
+          <line x1="21" y1="3" x2="14" y2="10"></line>
+          <line x1="3" y1="21" x2="10" y2="14"></line>
+        </svg>
+      </button>}
+  </div>;
 }
