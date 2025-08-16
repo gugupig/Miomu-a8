@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 // @ts-ignore;
 import { useToast } from '@/components/ui';
 // @ts-ignore;
-import { AlertCircle, Languages } from 'lucide-react';
+import { AlertCircle, Languages, ChevronLeft } from 'lucide-react';
 
 export default function Player(props) {
   const {
@@ -17,7 +17,7 @@ export default function Player(props) {
   const [currentLang, setCurrentLang] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showLanguageSelector, setShowLanguageSelector] = useState(true);
+  const [showControls, setShowControls] = useState(true);
   const [fontSize, setFontSize] = useState(24);
   const [orientation, setOrientation] = useState('landscape');
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -32,7 +32,7 @@ export default function Player(props) {
   } = $w.page.dataset.params;
   const parsedScriptRef = scriptRef ? JSON.parse(scriptRef) : null;
 
-  // 进入全屏
+  // 进入全屏模式
   const enterFullscreen = () => {
     const elem = playerRef.current;
     if (elem.requestFullscreen) {
@@ -45,7 +45,7 @@ export default function Player(props) {
     setIsFullscreen(true);
   };
 
-  // 退出全屏
+  // 退出全屏模式
   const exitFullscreen = () => {
     if (document.exitFullscreen) {
       document.exitFullscreen();
@@ -57,15 +57,24 @@ export default function Player(props) {
     setIsFullscreen(false);
   };
 
-  // 检测全屏变化
+  // 检测全屏状态变化
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('msfullscreenchange', handleFullscreenChange);
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
     };
+  }, []);
+
+  // 自动进入全屏
+  useEffect(() => {
+    enterFullscreen();
   }, []);
 
   // 调试用的dummy字幕数据
@@ -109,18 +118,23 @@ export default function Player(props) {
     setFontSize(calculateFontSize());
   };
 
-  // 设置语言选择器自动隐藏
+  // 设置控制栏自动隐藏
   const setupAutoHide = () => {
     clearTimeout(hideTimerRef.current);
     hideTimerRef.current = setTimeout(() => {
-      setShowLanguageSelector(false);
+      setShowControls(false);
     }, 5000);
   };
 
-  // 点击屏幕显示语言选择器
+  // 点击屏幕显示控制栏
   const handleScreenClick = () => {
-    setShowLanguageSelector(true);
+    setShowControls(true);
     setupAutoHide();
+  };
+
+  // 返回上一页
+  const handleBack = () => {
+    $w.utils.navigateBack();
   };
 
   // 加载剧本
@@ -165,8 +179,6 @@ export default function Player(props) {
         await loadScript(parsedScriptRef);
         const cleanup = subscribeSessionState(sessionId);
         setupAutoHide();
-        // 默认进入全屏
-        enterFullscreen();
         return () => {
           window.removeEventListener('resize', handleOrientationChange);
           cleanup();
@@ -202,19 +214,29 @@ export default function Player(props) {
     </div>;
   };
 
-  // 语言选择器
-  const renderLanguageSelector = () => {
-    if (!script || !showLanguageSelector) return null;
-    return <div className={`absolute ${orientation === 'portrait' ? 'bottom-4' : 'bottom-8'} left-0 right-0 flex justify-center`}>
-      <div className="bg-black bg-opacity-70 rounded-full p-2">
-        <select value={currentLang} onChange={e => {
-          setCurrentLang(e.target.value);
-          setupAutoHide();
-        }} className="bg-transparent text-white border-none focus:ring-0">
-          {script.meta.languages.map(lang => <option key={lang} value={lang} className="bg-black text-white">
-            {lang.toUpperCase()}
-          </option>)}
-        </select>
+  // 渲染控制栏
+  const renderControls = () => {
+    if (!showControls) return null;
+    return <div className="absolute inset-0 flex flex-col justify-between p-4 pointer-events-none">
+      {/* 顶部控制栏 */}
+      <div className="flex justify-between items-center pointer-events-auto">
+        <button onClick={handleBack} className="p-2 rounded-full bg-black bg-opacity-50 text-white">
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* 底部控制栏 */}
+      <div className="flex justify-center pointer-events-auto">
+        <div className="bg-black bg-opacity-70 rounded-full p-2">
+          <select value={currentLang} onChange={e => {
+            setCurrentLang(e.target.value);
+            setupAutoHide();
+          }} className="bg-transparent text-white border-none focus:ring-0">
+            {script?.meta.languages.map(lang => <option key={lang} value={lang} className="bg-black text-white">
+                {lang.toUpperCase()}
+              </option>)}
+          </select>
+        </div>
       </div>
     </div>;
   };
@@ -225,22 +247,13 @@ export default function Player(props) {
     </div>;
   }
   return <div ref={playerRef} className="flex flex-col h-screen bg-black text-white relative" onClick={handleScreenClick} style={{
-    position: 'fixed',
+    position: isFullscreen ? 'fixed' : 'relative',
     top: 0,
     left: 0,
-    width: '100vw',
-    height: '100vh',
-    zIndex: 9999
+    right: 0,
+    bottom: 0
   }}>
-    {renderCurrentCue()}
-    {renderLanguageSelector()}
-    {!isFullscreen && <button onClick={enterFullscreen} className="absolute top-4 right-4 bg-black bg-opacity-50 text-white p-2 rounded-full">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="15 3 21 3 21 9"></polyline>
-          <polyline points="9 21 3 21 3 15"></polyline>
-          <line x1="21" y1="3" x2="14" y2="10"></line>
-          <line x1="3" y1="21" x2="10" y2="14"></line>
-        </svg>
-      </button>}
-  </div>;
+      {renderCurrentCue()}
+      {renderControls()}
+    </div>;
 }
