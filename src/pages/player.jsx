@@ -19,16 +19,23 @@ export default function Player(props) {
   const [error, setError] = useState(null);
   const [showLanguageSelector, setShowLanguageSelector] = useState(true);
   const [fontSize, setFontSize] = useState(24);
-  const [orientation, setOrientation] = useState('landscape'); // 默认横屏模式
+  const [orientation, setOrientation] = useState('landscape');
   const lastVersionRef = useRef(-1);
   const hideTimerRef = useRef(null);
 
+  // 从路由参数中获取sessionId和scriptRef
+  const {
+    sessionId,
+    scriptRef
+  } = $w.page.dataset.params;
+  const parsedScriptRef = scriptRef ? JSON.parse(scriptRef) : null;
+
   // 调试用的dummy字幕数据
   const dummyScript = {
-    _id: "script1",
+    _id: parsedScriptRef?.scriptId || "script1",
     meta: {
-      hash: "abc123",
-      languages: ["zh", "en", "ja"]
+      hash: parsedScriptRef?.scriptHash || "abc123",
+      languages: parsedScriptRef?.langs || ["zh", "en", "ja"]
     },
     cues: [{
       id: "cue1",
@@ -54,7 +61,7 @@ export default function Player(props) {
       innerHeight
     } = window;
     const baseSize = orientation === 'portrait' ? Math.min(innerWidth, innerHeight) : Math.max(innerWidth, innerHeight);
-    return Math.floor(baseSize / (orientation === 'portrait' ? 20 : 15)); // 横屏时使用更大的字号
+    return Math.floor(baseSize / (orientation === 'portrait' ? 20 : 15));
   };
 
   // 检测屏幕方向变化
@@ -96,7 +103,7 @@ export default function Player(props) {
     setSessionState({
       sessionId,
       cueIndex: 0,
-      lang: "zh",
+      lang: parsedScriptRef?.defaultLang || "zh",
       version: 1,
       updatedAt: new Date().toISOString()
     });
@@ -117,13 +124,8 @@ export default function Player(props) {
         // 初始方向检测
         handleOrientationChange();
         window.addEventListener('resize', handleOrientationChange);
-        await loadScript({
-          scriptId: "script1",
-          scriptHash: "abc123",
-          defaultLang: "zh",
-          langs: ["zh", "en", "ja"]
-        });
-        const cleanup = subscribeSessionState("session1");
+        await loadScript(parsedScriptRef);
+        const cleanup = subscribeSessionState(sessionId);
         setupAutoHide();
         return () => {
           window.removeEventListener('resize', handleOrientationChange);
@@ -152,7 +154,7 @@ export default function Player(props) {
         lineHeight: `${fontSize * 1.2}px`,
         maxWidth: orientation === 'portrait' ? '80%' : '90%',
         color: '#FFFFFF',
-        textShadow: '0 0 8px rgba(0,0,0,0.8)' // 添加文字阴影增强可读性
+        textShadow: '0 0 8px rgba(0,0,0,0.8)'
       }}>
           {text}
           {isFallback && <span className="text-xs text-gray-400 ml-2">(缺省)</span>}

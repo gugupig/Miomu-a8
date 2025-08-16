@@ -24,13 +24,25 @@ export default function Sessions(props) {
     date: '2023-06-15',
     time: '19:30',
     venue: '国家大剧院',
-    status: 'available'
+    status: 'available',
+    scriptRef: {
+      scriptId: "script1",
+      scriptHash: "abc123",
+      defaultLang: "zh",
+      langs: ["zh", "en", "ja"]
+    }
   }, {
     id: '2',
     date: '2023-06-16',
     time: '19:30',
     venue: '国家大剧院',
-    status: 'available'
+    status: 'available',
+    scriptRef: {
+      scriptId: "script1",
+      scriptHash: "abc123",
+      defaultLang: "zh",
+      langs: ["zh", "en", "ja"]
+    }
   }];
   const dummyShowInfo = {
     title: "剧目名称",
@@ -79,8 +91,13 @@ export default function Sessions(props) {
     fetchData();
   }, []);
   const handleSessionClick = session => {
-    // 处理场次点击逻辑
-    console.log('Session clicked:', session);
+    $w.utils.navigateTo({
+      pageId: 'player',
+      params: {
+        sessionId: session.id,
+        scriptRef: JSON.stringify(session.scriptRef)
+      }
+    });
   };
   const renderSessionsTab = () => <div className="space-y-4 p-4">
       {sessions.map(session => <div key={session.id} className="p-4 bg-card rounded-lg flex justify-between items-center" onClick={() => handleSessionClick(session)}>
