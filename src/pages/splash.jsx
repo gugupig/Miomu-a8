@@ -19,7 +19,7 @@ export default function Splash(props) {
   // Dummy 数据用于 debug 和展示
   const dummyConfig = {
     serviceAvailable: true,
-    announcement: "欢迎使用我们的服务！",
+    announcement: "欢迎使用缪幕小程序",
     theme: "light"
   };
   useEffect(() => {
@@ -81,8 +81,9 @@ export default function Splash(props) {
   };
   return <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground">
       {/* 品牌LOGO */}
-      <div className="mb-8 animate-fade-in">
-        <img src="https://via.placeholder.com/150x150/667eea/ffffff?text=LOGO" alt="App Logo" className="w-32 h-32 rounded-full shadow-lg dark:shadow-gray-800" />
+      <div className="mb-8 animate-fade-in flex flex-col items-center">
+        <img src="https://via.placeholder.com/150x150/667eea/ffffff?text=缪幕" alt="缪幕 Logo" className="w-32 h-32 rounded-full shadow-lg dark:shadow-gray-800" />
+        <h1 className="mt-4 text-2xl font-bold text-primary">缪幕</h1>
       </div>
 
       {/* 加载状态 */}
