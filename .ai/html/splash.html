@@ -1,0 +1,122 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>应用启动中</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    .splash-container {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .loading-ring {
+      animation: spin 1.5s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body class="h-screen flex items-center justify-center splash-container text-white">
+  <div class="text-center fade-in">
+    <!-- 品牌LOGO -->
+    <div class="mb-8">
+      <img src="https://via.placeholder.com/150x150/ffffff/667eea?text=LOGO" 
+           alt="App Logo" 
+           class="w-32 h-32 mx-auto rounded-full shadow-lg">
+    </div>
+    
+    <!-- 加载动画 -->
+    <div class="relative w-16 h-16 mx-auto mb-8">
+      <div class="loading-ring absolute top-0 left-0 w-full h-full border-4 border-t-white border-r-white border-b-transparent border-l-transparent rounded-full"></div>
+      <div class="absolute top-0 left-0 w-full h-full border-4 border-opacity-20 border-white rounded-full"></div>
+    </div>
+    
+    <!-- 加载文字 -->
+    <p class="text-lg font-medium mb-2">正在加载应用...</p>
+    <p class="text-sm opacity-75">请稍候</p>
+    
+    <!-- 跳过按钮 -->
+    <button id="skipBtn" class="mt-8 px-4 py-2 bg-white bg-opacity-20 rounded-full text-sm font-medium hover:bg-opacity-30 transition">
+      跳过 <span id="countdown">3</span>s
+    </button>
+  </div>
+  
+  <!-- 错误提示弹层 -->
+  <div id="errorModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 text-gray-800">
+      <div class="text-center">
+        <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+        <h3 class="text-xl font-bold mb-2">网络连接失败</h3>
+        <p class="mb-6">无法连接到服务器，请检查您的网络设置</p>
+        <div class="flex space-x-3">
+          <button id="retryBtn" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded">
+            重试
+          </button>
+          <button id="closeBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 py-2 px-4 rounded">
+            关闭
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 倒计时跳转
+    let countdown = 3;
+    const countdownEl = document.getElementById('countdown');
+    const skipBtn = document.getElementById('skipBtn');
+    const errorModal = document.getElementById('errorModal');
+    const retryBtn = document.getElementById('retryBtn');
+    const closeBtn = document.getElementById('closeBtn');
+    
+    const timer = setInterval(() => {
+      countdown--;
+      countdownEl.textContent = countdown;
+      
+      if(countdown <= 0) {
+        clearInterval(timer);
+        // 模拟加载完成跳转
+        simulateLoading();
+      }
+    }, 1000);
+    
+    skipBtn.addEventListener('click', () => {
+      clearInterval(timer);
+      simulateLoading();
+    });
+    
+    // 模拟加载过程
+    function simulateLoading() {
+      // 这里模拟75%概率加载成功，25%概率失败
+      if(Math.random() > 0.25) {
+        // 成功跳转
+        window.location.href = 'home.html';
+      } else {
+        // 显示错误弹窗
+        errorModal.classList.remove('hidden');
+      }
+    }
+    
+    retryBtn.addEventListener('click', () => {
+      errorModal.classList.add('hidden');
+      simulateLoading();
+    });
+    
+    closeBtn.addEventListener('click', () => {
+      errorModal.classList.add('hidden');
+    });
+  </script>
+</body>
+</html>
+  
