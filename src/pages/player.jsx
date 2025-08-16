@@ -19,6 +19,7 @@ export default function Player(props) {
   const [error, setError] = useState(null);
   const [showLanguageSelector, setShowLanguageSelector] = useState(true);
   const [fontSize, setFontSize] = useState(24);
+  const [orientation, setOrientation] = useState('landscape'); // 默认横屏模式
   const lastVersionRef = useRef(-1);
   const hideTimerRef = useRef(null);
 
@@ -43,21 +44,7 @@ export default function Player(props) {
         en: "Please turn off or mute your phones",
         ja: "携帯電話の電源を切るかサイレントモードにしてください"
       }
-    }, {
-      id: "cue3",
-      texts: {
-        zh: "演出即将开始",
-        en: "The show is about to begin",
-        ja: "ショーはまもなく始まります"
-      }
     }]
-  };
-  const dummySessionState = {
-    sessionId: "session1",
-    cueIndex: 0,
-    lang: "zh",
-    version: 1,
-    updatedAt: new Date().toISOString()
   };
 
   // 计算自适应字号
@@ -66,8 +53,15 @@ export default function Player(props) {
       innerWidth,
       innerHeight
     } = window;
-    const baseSize = Math.min(innerWidth, innerHeight);
-    return Math.floor(baseSize / 20);
+    const baseSize = orientation === 'portrait' ? Math.min(innerWidth, innerHeight) : Math.max(innerWidth, innerHeight);
+    return Math.floor(baseSize / (orientation === 'portrait' ? 20 : 15)); // 横屏时使用更大的字号
+  };
+
+  // 检测屏幕方向变化
+  const handleOrientationChange = () => {
+    const newOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+    setOrientation(newOrientation);
+    setFontSize(calculateFontSize());
   };
 
   // 设置语言选择器自动隐藏
@@ -87,10 +81,7 @@ export default function Player(props) {
   // 加载剧本
   const loadScript = async scriptRef => {
     try {
-      // 模拟加载延迟
       await new Promise(resolve => setTimeout(resolve, 500));
-
-      // 直接使用调试数据，跳过校验
       setScript(dummyScript);
       setCurrentLang(scriptRef.defaultLang || "zh");
       return dummyScript;
@@ -102,51 +93,40 @@ export default function Player(props) {
 
   // 订阅实时状态
   const subscribeSessionState = sessionId => {
-    // 直接使用调试状态
-    setSessionState(dummySessionState);
-    lastVersionRef.current = dummySessionState.version;
-
-    // 模拟字幕轮播
+    setSessionState({
+      sessionId,
+      cueIndex: 0,
+      lang: "zh",
+      version: 1,
+      updatedAt: new Date().toISOString()
+    });
+    lastVersionRef.current = 1;
     const interval = setInterval(() => {
-      setSessionState(prev => {
-        const newIndex = (prev.cueIndex + 1) % dummyScript.cues.length;
-        return {
-          ...prev,
-          cueIndex: newIndex,
-          version: prev.version + 1,
-          updatedAt: new Date().toISOString()
-        };
-      });
+      setSessionState(prev => ({
+        ...prev,
+        cueIndex: (prev.cueIndex + 1) % dummyScript.cues.length,
+        version: prev.version + 1,
+        updatedAt: new Date().toISOString()
+      }));
     }, 3000);
     return () => clearInterval(interval);
   };
   useEffect(() => {
     const init = async () => {
       try {
-        // 初始化字号
-        setFontSize(calculateFontSize());
-
-        // 监听屏幕尺寸变化
-        const handleResize = () => {
-          setFontSize(calculateFontSize());
-        };
-        window.addEventListener('resize', handleResize);
-
-        // 加载剧本
+        // 初始方向检测
+        handleOrientationChange();
+        window.addEventListener('resize', handleOrientationChange);
         await loadScript({
           scriptId: "script1",
           scriptHash: "abc123",
           defaultLang: "zh",
           langs: ["zh", "en", "ja"]
         });
-
-        // 订阅状态
         const cleanup = subscribeSessionState("session1");
-
-        // 设置语言选择器自动隐藏
         setupAutoHide();
         return () => {
-          window.removeEventListener('resize', handleResize);
+          window.removeEventListener('resize', handleOrientationChange);
           cleanup();
           clearTimeout(hideTimerRef.current);
         };
@@ -164,16 +144,15 @@ export default function Player(props) {
     if (!script || !sessionState) return null;
     const cue = script.cues[sessionState.cueIndex];
     if (!cue) return null;
-
-    // 语言回退逻辑
     let text = cue.texts[currentLang] || cue.texts[script.meta.languages[0]] || Object.values(cue.texts)[0];
     const isFallback = !cue.texts[currentLang];
     return <div className="flex items-center justify-center h-full">
         <p className="text-center px-4" style={{
         fontSize: `${fontSize}px`,
         lineHeight: `${fontSize * 1.2}px`,
-        maxWidth: '80%',
-        color: '#FFFFFF'
+        maxWidth: orientation === 'portrait' ? '80%' : '90%',
+        color: '#FFFFFF',
+        textShadow: '0 0 8px rgba(0,0,0,0.8)' // 添加文字阴影增强可读性
       }}>
           {text}
           {isFallback && <span className="text-xs text-gray-400 ml-2">(缺省)</span>}
@@ -184,7 +163,7 @@ export default function Player(props) {
   // 语言选择器
   const renderLanguageSelector = () => {
     if (!script || !showLanguageSelector) return null;
-    return <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+    return <div className={`absolute ${orientation === 'portrait' ? 'bottom-4' : 'bottom-8'} left-0 right-0 flex justify-center`}>
         <div className="bg-black bg-opacity-70 rounded-full p-2">
           <select value={currentLang} onChange={e => {
           setCurrentLang(e.target.value);
