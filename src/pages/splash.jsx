@@ -1,5 +1,5 @@
 // @ts-ignore;
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 // @ts-ignore;
 import { useToast } from '@/components/ui';
 // @ts-ignore;
@@ -15,17 +15,23 @@ export default function Splash(props) {
   const [loading, setLoading] = useState(true);
   const [networkError, setNetworkError] = useState(false);
   const [serviceError, setServiceError] = useState(false);
+
+  // Dummy 数据用于 debug 和展示
+  const dummyConfig = {
+    serviceAvailable: true,
+    announcement: "欢迎使用我们的服务！",
+    theme: "light"
+  };
   useEffect(() => {
-    // 初始化任务
     const initApp = async () => {
       try {
-        // 并行执行初始化任务
+        // 模拟并行任务
         await Promise.all([fetchConfig(), checkNetwork(), initSession()]);
 
         // 所有任务完成后跳转
         setTimeout(() => {
           $w.utils.navigateTo({
-            pageId: 'playlist',
+            pageId: 'shows',
             params: {}
           });
         }, 2000); // 确保至少展示2秒LOGO
@@ -39,10 +45,9 @@ export default function Splash(props) {
   }, []);
   const fetchConfig = async () => {
     try {
-      const res = await $w.cloud.callFunction({
-        name: 'getConfig'
-      });
-      return res;
+      // 模拟远端配置拉取
+      console.log("拉取配置:", dummyConfig);
+      return dummyConfig;
     } catch (error) {
       setServiceError(true);
       throw error;
@@ -50,10 +55,11 @@ export default function Splash(props) {
   };
   const checkNetwork = async () => {
     try {
-      // 简单网络检测
-      await fetch('https://www.google.com', {
-        mode: 'no-cors'
-      });
+      // 模拟网络检测
+      const isOnline = Math.random() > 0.2; // 80% 概率模拟网络正常
+      if (!isOnline) {
+        throw new Error("网络不可用");
+      }
       return true;
     } catch {
       setNetworkError(true);
@@ -61,7 +67,8 @@ export default function Splash(props) {
     }
   };
   const initSession = async () => {
-    // 匿名会话初始化
+    // 模拟匿名会话初始化
+    console.log("初始化匿名会话");
     return Promise.resolve();
   };
   const handleError = error => {
@@ -94,7 +101,7 @@ export default function Splash(props) {
                 当前处于离线状态，将以缓存内容展示
               </p>
               <button onClick={() => $w.utils.navigateTo({
-            pageId: 'playlist',
+            pageId: 'shows',
             params: {}
           })} className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90">
                 继续进入
@@ -113,7 +120,7 @@ export default function Splash(props) {
                 当前服务遇到问题，部分功能可能受限
               </p>
               <button onClick={() => $w.utils.navigateTo({
-            pageId: 'playlist',
+            pageId: 'shows',
             params: {}
           })} className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90">
                 继续进入
