@@ -38,11 +38,7 @@ export default function Player(props) {
     const elem = playerRef.current;
     if (elem.requestFullscreen) {
       elem.requestFullscreen().catch(err => {
-        toast({
-          title: "全屏模式错误",
-          description: err.message,
-          variant: "destructive"
-        });
+        console.error('全屏请求失败:', err);
       });
     } else if (elem.webkitRequestFullscreen) {
       elem.webkitRequestFullscreen();
@@ -79,12 +75,13 @@ export default function Player(props) {
     };
   }, []);
 
-  // 自动进入全屏
+  // 组件挂载后进入全屏
   useEffect(() => {
-    if (playerRef.current) {
+    const timer = setTimeout(() => {
       enterFullscreen();
-    }
-  }, [playerRef.current]);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // 调试用的dummy字幕数据
   const dummyScript = {
