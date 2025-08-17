@@ -1,9 +1,9 @@
 // @ts-ignore;
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 // @ts-ignore;
 import { useToast } from '@/components/ui';
 // @ts-ignore;
-import { AlertCircle, RefreshCw, ChevronRight } from 'lucide-react';
+import { AlertCircle, RefreshCw, ChevronRight, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function Sessions(props) {
   const {
@@ -17,32 +17,79 @@ export default function Sessions(props) {
   const [showInfo, setShowInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [showPastSessions, setShowPastSessions] = useState(false);
+  const abortControllerRef = useRef(null);
 
-  // Dummy数据
+  // 时间格式化工具函数
+  const formatDateTime = isoString => {
+    try {
+      const date = new Date(isoString);
+      return new Intl.DateTimeFormat('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).format(date);
+    } catch (e) {
+      console.error('日期格式化错误:', e);
+      return isoString;
+    }
+  };
+
+  // 分组场次数据
+  const groupSessions = sessions => {
+    const now = new Date();
+    const upcoming = [];
+    const past = [];
+    sessions.forEach(session => {
+      const sessionDate = new Date(session.startsAt);
+      if (sessionDate >= now) {
+        upcoming.push(session);
+      } else {
+        past.push(session);
+      }
+    });
+
+    // 按时间升序排序
+    upcoming.sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
+    past.sort((a, b) => new Date(b.startsAt) - new Date(a.startsAt));
+    return {
+      upcoming,
+      past
+    };
+  };
+
+  // 修改后的dummy数据，使用ISO 8601格式
   const dummySessions = [{
     id: '1',
-    date: '2023-06-15',
-    time: '19:30',
+    startsAt: '2023-08-20T19:30:00+08:00',
     venue: '国家大剧院',
     status: 'available',
-    scriptRef: {
-      scriptId: "script1",
-      scriptHash: "abc123",
-      defaultLang: "zh",
-      langs: ["zh", "en", "ja"]
-    }
+    scriptId: "script1",
+    scriptHash: "abc123",
+    defaultLang: "zh",
+    langs: ["zh", "en", "ja"]
   }, {
     id: '2',
-    date: '2023-06-16',
-    time: '19:30',
+    startsAt: '2023-08-18T19:30:00+08:00',
     venue: '国家大剧院',
     status: 'available',
-    scriptRef: {
-      scriptId: "script1",
-      scriptHash: "abc123",
-      defaultLang: "zh",
-      langs: ["zh", "en", "ja"]
-    }
+    scriptId: "script1",
+    scriptHash: "abc123",
+    defaultLang: "zh",
+    langs: ["zh", "en", "ja"]
+  }, {
+    id: '3',
+    startsAt: '2023-08-25T19:30:00+08:00',
+    venue: '国家大剧院',
+    status: 'available',
+    scriptId: "script1",
+    scriptHash: "abc123",
+    defaultLang: "zh",
+    langs: ["zh", "en", "ja"]
   }];
   const dummyShowInfo = {
     title: "剧目名称",
@@ -72,42 +119,125 @@ export default function Sessions(props) {
       answer: "问题二的解答"
     }]
   };
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // 模拟加载延迟
-        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // 加载场次数据
-        setSessions(dummySessions.filter(s => s.status !== "draft"));
-        // 加载剧目信息
-        setShowInfo(dummyShowInfo);
-      } catch (err) {
+  // 加载数据函数
+  const fetchData = async () => {
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+    try {
+      setLoading(true);
+      setError(null);
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          if (signal.aborted) {
+            reject(new DOMException('Aborted', 'AbortError'));
+            return;
+          }
+          if (Math.random() < 0.3 && retryCount < 2) {
+            reject(new Error('模拟数据加载失败'));
+            return;
+          }
+          setSessions(dummySessions.filter(s => s.status !== "draft"));
+          setShowInfo(dummyShowInfo);
+          resolve();
+        }, 1000);
+        signal.addEventListener('abort', () => {
+          clearTimeout(timer);
+          reject(new DOMException('Aborted', 'AbortError'));
+        });
+      });
+    } catch (err) {
+      if (err.name !== 'AbortError') {
         setError(err);
-      } finally {
+        setRetryCount(prev => prev + 1);
+      }
+    } finally {
+      if (!signal.aborted) {
         setLoading(false);
       }
-    };
-    fetchData();
-  }, []);
-  const handleSessionClick = session => {
-    $w.utils.navigateTo({
-      pageId: 'player',
-      params: {
-        sessionId: session.id,
-        scriptRef: JSON.stringify(session.scriptRef)
-      }
-    });
+    }
   };
-  const renderSessionsTab = () => <div className="space-y-4 p-4">
-      {sessions.map(session => <div key={session.id} className="p-4 bg-card rounded-lg flex justify-between items-center" onClick={() => handleSessionClick(session)}>
-          <div>
-            <p className="font-medium">{session.date} {session.time}</p>
-            <p className="text-sm text-muted-foreground">{session.venue}</p>
-          </div>
-          <ChevronRight className="w-5 h-5 text-muted-foreground" />
-        </div>)}
+  useEffect(() => {
+    fetchData();
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [retryCount]);
+
+  // 修改后的跳转逻辑，添加scriptHash校验
+  const handleSessionClick = session => {
+    try {
+      if (!session.scriptHash) {
+        throw new Error('剧本信息不完整，缺少scriptHash');
+      }
+
+      // 仅传递必要字段
+      $w.utils.navigateTo({
+        pageId: 'player',
+        params: {
+          sessionId: session.id,
+          scriptId: session.scriptId,
+          scriptHash: session.scriptHash,
+          defaultLang: session.defaultLang
+        }
+      });
+    } catch (err) {
+      toast({
+        title: '操作失败',
+        description: err.message,
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // 渲染场次列表项
+  const renderSessionItem = session => {
+    const formattedDate = formatDateTime(session.startsAt);
+    return <div key={session.id} className="p-4 bg-card rounded-lg flex justify-between items-center hover:bg-accent transition-colors cursor-pointer" onClick={() => handleSessionClick(session)}>
+        <div>
+          <p className="font-medium">{formattedDate}</p>
+          <p className="text-sm text-muted-foreground">{session.venue}</p>
+        </div>
+        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+      </div>;
+  };
+  const renderSessionsTab = () => {
+    if (loading) {
+      return <div className="flex flex-col items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>;
+    }
+    if (error) {
+      return <div className="flex flex-col items-center justify-center h-64 p-4">
+        <AlertCircle className="w-8 h-8 text-destructive mb-2" />
+        <p className="text-center text-destructive mb-4">加载失败: {error.message}</p>
+        <button className="inline-flex items-center justify-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90" onClick={fetchData}>
+          <RefreshCw className="w-4 h-4 mr-2" />
+          重试
+        </button>
+      </div>;
+    }
+    const {
+      upcoming,
+      past
+    } = groupSessions(sessions);
+    return <div className="space-y-4 p-4">
+      {upcoming.length > 0 && <div className="space-y-2">
+        <h3 className="font-medium text-lg">即将上演</h3>
+        {upcoming.map(renderSessionItem)}
+      </div>}
+      
+      {past.length > 0 && <div className="space-y-2">
+        <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowPastSessions(!showPastSessions)}>
+          <h3 className="font-medium text-lg">历史场次</h3>
+          {showPastSessions ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
+        </div>
+        {showPastSessions && past.map(renderSessionItem)}
+      </div>}
     </div>;
+  };
   const renderShowInfoTab = () => {
     if (loading) return <div className="space-y-4">
         {[...Array(5)].map((_, i) => <div key={i} className="h-32 bg-muted rounded animate-pulse"></div>)}

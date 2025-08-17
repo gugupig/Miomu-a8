@@ -25,12 +25,15 @@ export default function Player(props) {
   const hideTimerRef = useRef(null);
   const playerRef = useRef(null);
 
-  // 从路由参数中获取sessionId和scriptRef
+  // 修改后的参数获取方式
   const {
     sessionId,
-    scriptRef
+    scriptId,
+    scriptHash,
+    defaultLang,
+    langs
   } = $w.page.dataset.params;
-  const parsedScriptRef = scriptRef ? JSON.parse(scriptRef) : null;
+  const parsedLangs = langs ? JSON.parse(langs) : ["zh", "en", "ja"];
 
   // 进入全屏模式
   const enterFullscreen = () => {
@@ -83,12 +86,12 @@ export default function Player(props) {
     return () => clearTimeout(timer);
   }, []);
 
-  // 调试用的dummy字幕数据
+  // 修改后的dummy字幕数据
   const dummyScript = {
-    _id: parsedScriptRef?.scriptId || "script1",
+    _id: scriptId || "script1",
     meta: {
-      hash: parsedScriptRef?.scriptHash || "abc123",
-      languages: parsedScriptRef?.langs || ["zh", "en", "ja"]
+      hash: scriptHash || "abc123",
+      languages: parsedLangs
     },
     cues: [{
       id: "cue1",
@@ -161,7 +164,7 @@ export default function Player(props) {
     setSessionState({
       sessionId,
       cueIndex: 0,
-      lang: parsedScriptRef?.defaultLang || "zh",
+      lang: defaultLang || "zh",
       version: 1,
       updatedAt: new Date().toISOString()
     });
@@ -182,7 +185,14 @@ export default function Player(props) {
         // 初始方向检测
         handleOrientationChange();
         window.addEventListener('resize', handleOrientationChange);
-        await loadScript(parsedScriptRef);
+
+        // 修改后的加载逻辑
+        await loadScript({
+          scriptId,
+          scriptHash,
+          defaultLang,
+          langs: parsedLangs
+        });
         const cleanup = subscribeSessionState(sessionId);
         setupAutoHide();
         return () => {

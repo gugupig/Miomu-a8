@@ -1,0 +1,179 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Info Tab - 图片懒加载</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    .lazy-img {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 8px;
+      min-height: 200px;
+    }
+    
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    
+    .img-container {
+      position: relative;
+      overflow: hidden;
+      border-radius: 8px;
+    }
+    
+    .img-loaded {
+      opacity: 0;
+      transition: opacity 0.3s ease-in;
+    }
+    
+    .img-loaded.show {
+      opacity: 1;
+    }
+    
+    .loading-spinner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top-color: #3498db;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 p-4">
+  <div class="max-w-2xl mx-auto">
+    <h1 class="text-2xl font-bold mb-6">信息展示</h1>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- 图片1 -->
+      <div class="img-container lazy-img">
+        <div class="loading-spinner"></div>
+        <img 
+          src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f0f0f0'/%3E%3C/svg%3E" 
+          data-src="https://images.unsplash.com/photo-1682686580391-615b4f1df606?w=400&h=300&fit=crop&auto=format" 
+          alt="示例图片1"
+          class="w-full h-auto img-loaded"
+          loading="lazy"
+        >
+      </div>
+      
+      <!-- 图片2 -->
+      <div class="img-container lazy-img">
+        <div class="loading-spinner"></div>
+        <img 
+          src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f0f0f0'/%3E%3C/svg%3E" 
+          data-src="https://images.unsplash.com/photo-1682695796954-bad0d0f59ff1?w=400&h=300&fit=crop&auto=format" 
+          alt="示例图片2"
+          class="w-full h-auto img-loaded"
+          loading="lazy"
+        >
+      </div>
+      
+      <!-- 图片3 -->
+      <div class="img-container lazy-img">
+        <div class="loading-spinner"></div>
+        <img 
+          src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f0f0f0'/%3E%3C/svg%3E" 
+          data-src="https://images.unsplash.com/photo-1682686580391-615b4f1df606?w=400&h=300&fit=crop&auto=format" 
+          alt="示例图片3"
+          class="w-full h-auto img-loaded"
+          loading="lazy"
+        >
+      </div>
+      
+      <!-- 图片4 -->
+      <div class="img-container lazy-img">
+        <div class="loading-spinner"></div>
+        <img 
+          src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f0f0f0'/%3E%3C/svg%3E" 
+          data-src="https://images.unsplash.com/photo-1682695796954-bad0d0f59ff1?w=400&h=300&fit=crop&auto=format" 
+          alt="示例图片4"
+          class="w-full h-auto img-loaded"
+          loading="lazy"
+        >
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // 懒加载图片
+      const lazyImages = document.querySelectorAll('img[data-src]');
+      const imageObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const img = entry.target;
+            const spinner = img.parentElement.querySelector('.loading-spinner');
+            
+            // 加载实际图片
+            img.src = img.dataset.src;
+            
+            // 图片加载完成后显示
+            img.onload = function() {
+              img.classList.add('show');
+              if (spinner) spinner.style.display = 'none';
+              
+              // 移除占位背景
+              img.parentElement.classList.remove('lazy-img');
+              img.parentElement.style.background = 'none';
+            };
+            
+            // 图片加载错误处理
+            img.onerror = function() {
+              if (spinner) spinner.style.display = 'none';
+              img.alt = '图片加载失败';
+              img.parentElement.classList.remove('lazy-img');
+              img.parentElement.style.background = '#f8f9fa';
+            };
+            
+            observer.unobserve(img);
+          }
+        });
+      }, {
+        rootMargin: '100px',
+        threshold: 0.1
+      });
+
+      lazyImages.forEach(img => {
+        imageObserver.observe(img);
+      });
+
+      // 渐进式加载 - 低质量图片占位
+      const progressiveLoad = (img) => {
+        const lowQualitySrc = img.dataset.src + '&q=10&blur=2';
+        const highQualitySrc = img.dataset.src + '&q=90';
+        
+        // 先加载低质量图片
+        const tempImg = new Image();
+        tempImg.src = lowQualitySrc;
+        tempImg.onload = function() {
+          img.src = lowQualitySrc;
+          img.classList.add('show');
+          
+          // 然后加载高质量图片
+          const highQualityImg = new Image();
+          highQualityImg.src = highQualitySrc;
+          highQualityImg.onload = function() {
+            img.src = highQualitySrc;
+          };
+        };
+      };
+    });
+  </script>
+</body>
+</html>
+  
